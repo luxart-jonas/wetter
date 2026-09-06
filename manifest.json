@@ -2,7 +2,7 @@
   "name": "Wetteranalyst",
   "short_name": "Wetteranalyst",
   "description": "KI-Wetteranalyst mit ICON, ECMWF und GFS – Modellvergleich, Konsens und bestes Wetterfenster.",
-  "start_url": "./wetteranalyst.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#10161d",
