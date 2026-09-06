@@ -173,7 +173,7 @@
 <header>
   <div class="brand">
     <span class="brand-mark">🌤️ Wetteranalyst</span>
-    <span class="brand-sub">ICON · ECMWF · GFS</span>
+    <span class="brand-sub" id="brandSub">ICON · ECMWF · GFS</span>
   </div>
   <div class="header-actions">
     <label class="toggle"><input type="checkbox" id="nerd" /> Nerd-Modus</label>
@@ -189,6 +189,14 @@
 </form>
 
 <script type="module">
+/* ============================================================
+   VERSION — bei jedem Update hochzählen. Wird im Header angezeigt
+   und an den Service Worker durchgereicht (siehe unten), damit man
+   nach einem Deploy auf einen Blick sieht, ob das Handy schon die
+   neue Version geladen hat.
+   ============================================================ */
+const APP_VERSION = "1.1.0";
+
 /* ============================================================
    KONFIGURATION — 1:1 aus der ursprünglichen Weather Engine
    (weather-engine/src/schema/weather.ts, providers/openMeteoClient.ts)
@@ -764,6 +772,8 @@ const composer = document.getElementById("composer");
 const input = document.getElementById("input");
 const sendBtn = document.getElementById("send");
 const nerdToggle = document.getElementById("nerd");
+const brandSub = document.getElementById("brandSub");
+brandSub.textContent = `ICON · ECMWF · GFS · v${APP_VERSION}`;
 
 function safeGet(key) { try { return localStorage.getItem(key); } catch { return null; } }
 function safeSet(key, value) { try { localStorage.setItem(key, value); } catch {} }
@@ -890,7 +900,7 @@ renderInitial();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`).catch(() => {});
   });
 }
 </script>

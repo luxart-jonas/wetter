@@ -4,7 +4,9 @@
 // Netz laden, damit Updates sofort ankommen und nichts an alten,
 // zwischengespeicherten Ständen hängen bleibt.
 
-const CACHE_NAME = "wetteranalyst-v1";
+// Bei jedem App-Update (APP_VERSION in index.html) diesen Wert mit hochzählen —
+// das verwirft automatisch den alten Cache und erzwingt frische Dateien.
+const CACHE_NAME = "wetteranalyst-v1.1.0";
 const APP_SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
