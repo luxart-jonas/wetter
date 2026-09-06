@@ -4,14 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Wetteranalyst</title>
-<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <meta name="theme-color" content="#10161d">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Wetteranalyst">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root {
@@ -898,10 +894,18 @@ composer.addEventListener("submit", async (e) => {
 if (safeGet(KEY_STORAGE)) closeGate(); else openGate();
 renderInitial();
 
+// Service Worker wieder entfernt (verursachte auf manchen Handys hängende,
+// veraltete Seitenstände). Alle vorhandenen Registrierungen + deren Cache
+// aktiv abmelden/leeren, damit alte Installationen sich selbst heilen.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`).catch(() => {});
-  });
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister());
+  }).catch(() => {});
+}
+if ("caches" in window) {
+  caches.keys().then((keys) => {
+    keys.forEach((k) => { if (k.startsWith("wetteranalyst")) caches.delete(k); });
+  }).catch(() => {});
 }
 </script>
 
