@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Wetteranalyst</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#10161d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wetteranalyst">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root {
@@ -696,31 +704,18 @@ Regeln, die du IMMER befolgst:
 4. Sichtweiten-Angaben sind eine Heuristik (0-100 Score + Label), keine exakte Kilometerzahl — stelle sie entsprechend vorsichtig dar.
 5. Der Konsens-/Confidence-Wert beschreibt, wie einig sich die Modelle sind — bei nur einem verfügbaren Modell ist das kein Beweis für hohe Sicherheit; sag das dann.
 6. Antworte in der Sprache der Nutzerfrage (Standard: Deutsch), knapp und konkret. Keine Rohdatentabellen, außer im Nerd-Modus explizit gewünscht.
-7. Bei Fragen ohne Wetterbezug antworte normal ohne Werkzeugaufruf.
-8. WICHTIG bei Vergleichen über mehrere Tage (z.B. "welcher Tag ist am schlechtesten diese Woche"): rufe für JEDEN Tag ein eigenes, frisches Werkzeug auf — verlasse dich nie auf Zahlen aus einer früheren Antwort in diesem Gespräch, auch nicht aus deiner eigenen vorherigen Nachricht. Jede Zahl, die du nennst, muss wortwörtlich aus dem Tool-Ergebnis DIESER Runde stammen. Wenn du eine Zahl nicht in einem aktuellen Tool-Ergebnis wiederfindest, nenne sie nicht — rufe stattdessen das Werkzeug erneut auf. Widersprich dir nie selbst zwischen zwei Antworten zum selben Ort/Tag, ohne den Widerspruch zu erklären (z.B. unterschiedliche Uhrzeit am selben Tag).`;
+7. Bei Fragen ohne Wetterbezug antworte normal ohne Werkzeugaufruf.`;
 }
 
 /* ============================================================
    DEEPSEEK CLIENT + TOOL-CALLING-LOOP — deepseek/client.ts + chatLoop.ts
    ============================================================ */
-const DEEPSEEK_TIMEOUT_MS = 45000;
 async function callDeepSeek(apiKey, messages) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEEPSEEK_TIMEOUT_MS);
-  let res;
-  try {
-    res = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: "deepseek-chat", messages, tools: DEEPSEEK_TOOLS, tool_choice: "auto", temperature: 0.2 }),
-    });
-  } catch (err) {
-    if (err.name === "AbortError") throw new Error(`DeepSeek hat nach ${DEEPSEEK_TIMEOUT_MS / 1000}s nicht geantwortet (Zeitüberschreitung). Bitte nochmal versuchen — bei Fragen zu vielen Tagen auf einmal hilft es, die Frage aufzuteilen.`);
-    throw err;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: "deepseek-chat", messages, tools: DEEPSEEK_TOOLS, tool_choice: "auto", temperature: 0.2 }),
+  });
   if (!res.ok) {
     const bodyText = await res.text().catch(() => "");
     throw new Error(`DeepSeek API antwortete mit ${res.status}: ${bodyText.slice(0, 300)}`);
@@ -860,33 +855,17 @@ composer.addEventListener("submit", async (e) => {
   sendBtn.disabled = true;
 
   const thinking = renderMessage("assistant", "… denkt nach …");
-  const startedAt = Date.now();
-  let lastLabel = "denkt nach";
-  const ticker = setInterval(() => {
-    const secs = Math.round((Date.now() - startedAt) / 1000);
-    thinking.textContent = secs < 8 ? `… ${lastLabel} …` : `… ${lastLabel} … (${secs}s — bei mehrtägigen Vergleichen kann das etwas dauern)`;
-  }, 1000);
-
-  const OVERALL_TIMEOUT_MS = 120000;
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(`Zeitüberschreitung nach ${OVERALL_TIMEOUT_MS / 1000}s. Bitte nochmal versuchen — eventuell die Frage aufteilen (z.B. einen Tag statt der ganzen Woche).`)), OVERALL_TIMEOUT_MS)
-  );
 
   try {
-    const result = await Promise.race([
-      runChatTurn(apiKey, history.slice(0, -1), message, (toolName) => {
-        lastLabel = `ruft ${toolName} auf`;
-      }),
-      timeoutPromise,
-    ]);
-    clearInterval(ticker);
+    const result = await runChatTurn(apiKey, history.slice(0, -1), message, (toolName) => {
+      thinking.textContent = `… ruft ${toolName} auf …`;
+    });
     thinking.remove();
     renderMessage("assistant", result.reply || "(keine Antwort erhalten)");
     if (nerdToggle.checked) renderToolPanel(result.toolCalls);
     history.push({ role: "assistant", content: result.reply });
     saveHistory(history);
   } catch (err) {
-    clearInterval(ticker);
     thinking.remove();
     let msg = err.message || String(err);
     if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
